@@ -1,19 +1,51 @@
 const venom = require('venom-bot');
 const axios = require('axios');
 
+// URL da API da Akira (Servidor ou Local)
+const AKIRA_API_URL = process.env.AKIRA_API_URL || 'https://amazing-ant-softedge-998ba377.koyeb.app/bot';
+
+// Caminho do Chrome (para Render/Koyeb)
+const CHROME_PATH = process.env.CHROME_EXECUTABLE_PATH || "/usr/bin/google-chrome";
+
 venom
   .create({
-    session: 'bot-session',
-    multidevice: true,
-    headless: true, // Mantém rodando sem interface gráfica
-    browserArgs: ['--no-sandbox', '--disable-setuid-sandbox'],
-    executablePath: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+    session: "bot",
+    headless: true,
+    browserArgs: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--single-process",
+      "--no-zygote",
+      "--disable-gpu",
+      "--user-data-dir=/tmp",
+      "--remote-debugging-port=9222",
+      "--disable-software-rasterizer",
+      "--disable-dev-shm-usage",
+      "--window-size=1920x1080",
+      "--disable-features=site-per-process",
+      "--enable-features=NetworkService,NetworkServiceInProcess",
+      "--disable-breakpad",
+      "--disable-sync",
+      "--disable-translate",
+      "--disable-background-timer-throttling",
+      "--disable-backgrounding-occluded-windows",
+      "--disable-renderer-backgrounding",
+      "--disable-ipc-flooding-protection",
+      "--disable-client-side-phishing-detection",
+      "--mute-audio",
+      "--disable-default-apps",
+      "--disable-popup-blocking",
+      "--disable-hang-monitor",
+      "--disable-prompt-on-repost"
+    ],
+    browserPath: CHROME_PATH
   })
   .then(client => start(client))
   .catch(error => {
     console.error("[ERRO] Falha ao iniciar o Venom-Bot:", error);
     console.log("Tentando reiniciar em 5 segundos...");
-    setTimeout(() => process.exit(), 5000); // Reinicia o processo
+    setTimeout(() => process.exit(), 5000);
   });
 
 async function start(client) {
@@ -21,7 +53,7 @@ async function start(client) {
 
   let botNumber;
   try {
-    const botInfo = await client.getHostDevice(); // Obtém informações do dispositivo
+    const botInfo = await client.getHostDevice();
     botNumber = botInfo.id ? botInfo.id._serialized.split("@")[0] : null;
 
     if (!botNumber) {
@@ -34,7 +66,6 @@ async function start(client) {
     return;
   }
 
-  // Monitorar status da sessão e tentar reconectar se cair
   client.onStateChange((state) => {
     console.log("[INFO] Estado do WhatsApp:", state);
     if (["CONFLICT", "UNLAUNCHED", "UNPAIRED", "UNPAIRED_IDLE"].includes(state)) {
@@ -52,43 +83,35 @@ async function start(client) {
   });
 
   client.onMessage(async (message) => {
-    const isGroup = message.isGroupMsg; // Se for um grupo
-    const mentionedAkira = message.body.toLowerCase().includes('akira'); // Nome "akira" no texto
-    const isMentioned = message.mentionedJidList.length > 0; // Se alguém foi mencionado com @
+    const isGroup = message.isGroupMsg;
+    const mentionedAkira = message.body.toLowerCase().includes('akira');
+    const isMentioned = message.mentionedJidList.length > 0;
     const senderName = message.sender?.pushname || message.sender?.verifiedName || "Usuário";
+    const senderNumber = message.sender?.id.split("@")[0] || null;
 
-    // Verifica se a Akira foi mencionada com @
     const mentionedAkiraWithAt = isMentioned && message.mentionedJidList.some(jid => jid.includes(botNumber));
-
-    // Verifica se a mensagem é uma resposta direta para a Akira
     const isReply = message.quotedMsg !== undefined && message.quotedMsg !== null;
     const quotedAuthor = message.quotedMsg?.author || message.quotedParticipant;
     const isReplyToAkira = isReply && quotedAuthor && quotedAuthor.includes(botNumber);
 
-    // 🔹 REGRAS PARA GRUPOS
     if (isGroup) {
-      // A Akira só responde se:
-      // - For mencionada com @ (mentionedAkiraWithAt)
-      // - Se o nome "akira" aparecer no texto (mentionedAkira)
-      // - Se a mensagem for uma resposta direta a uma mensagem dela (isReplyToAkira)
       if (!mentionedAkiraWithAt && !mentionedAkira && !isReplyToAkira) {
-        return; // Se nenhuma dessas condições for atendida, não responde
+        return;
       }
     }
 
-    // 🔹 EM CHAT PRIVADO, RESPONDE A TUDO SEM FILTRO
-
     try {
-      const response = await axios.post('http://127.0.0.1:6000/bot', {
+      const response = await axios.post(AKIRA_API_URL, {
         message: message.body,
-        sender: senderName
+        sender: senderName,
+        numero: senderNumber
       });
 
       const botReply = response.data?.reply || "⚠️ Erro ao obter resposta da Akira.";
       await client.sendText(message.from, botReply);
     } catch (error) {
       console.error("[ERRO] Falha ao chamar a API do bot:", error);
-      await client.sendText(message.from, "Erro ao processar sua mensagem.");
+      await client.sendText(message.from, "⚠️ Ocorreu um erro ao processar sua mensagem. Tente novamente.");
     }
   });
 }
