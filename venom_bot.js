@@ -1,9 +1,14 @@
 const venom = require('venom-bot');
 const axios = require('axios');
+const express = require('express');
 
-// URL da API da Akira (Servidor ou Local)
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// ✅ URL da API da Akira (Servidor ou Local)
 const AKIRA_API_URL = process.env.AKIRA_API_URL || 'https://amazing-ant-softedge-998ba377.koyeb.app/bot';
 
+// ✅ Inicia o Venom-Bot
 venom
   .create({
     session: "bot",
@@ -39,8 +44,8 @@ venom
   })
   .then(client => start(client))
   .catch(error => {
-    console.error("[ERRO] Falha ao iniciar o Venom-Bot:", error);
-    console.log("Tentando reiniciar em 5 segundos...");
+    console.error("❌ Erro ao iniciar o Venom-Bot:", error);
+    console.log("🔄 Tentando reiniciar em 5 segundos...");
     setTimeout(() => process.exit(), 5000);
   });
 
@@ -62,6 +67,7 @@ async function start(client) {
     return;
   }
 
+  // ✅ Monitora estado do WhatsApp
   client.onStateChange((state) => {
     console.log("[INFO] Estado do WhatsApp:", state);
     if (["CONFLICT", "UNLAUNCHED", "UNPAIRED", "UNPAIRED_IDLE"].includes(state)) {
@@ -78,6 +84,7 @@ async function start(client) {
     }
   });
 
+  // ✅ Processa mensagens recebidas
   client.onMessage(async (message) => {
     const isGroup = message.isGroupMsg;
     const mentionedAkira = message.body.toLowerCase().includes('akira');
@@ -90,6 +97,7 @@ async function start(client) {
     const quotedAuthor = message.quotedMsg?.author || message.quotedParticipant;
     const isReplyToAkira = isReply && quotedAuthor && quotedAuthor.includes(botNumber);
 
+    // ✅ Responde apenas quando necessário
     if (isGroup) {
       if (!mentionedAkiraWithAt && !mentionedAkira && !isReplyToAkira) {
         return;
@@ -106,8 +114,23 @@ async function start(client) {
       const botReply = response.data?.reply || "⚠️ Erro ao obter resposta da Akira.";
       await client.sendText(message.from, botReply);
     } catch (error) {
-      console.error("[ERRO] Falha ao chamar a API do bot:", error);
+      console.error("❌ Erro ao chamar a API da Akira:", error);
       await client.sendText(message.from, "⚠️ Ocorreu um erro ao processar sua mensagem. Tente novamente.");
     }
   });
 }
+
+// ✅ Adiciona um servidor HTTP para evitar erro de porta no Render/Koyeb
+app.get('/', (req, res) => {
+  res.send("✅ Venom-Bot está rodando!");
+});
+
+// Endpoint de health check para evitar erro de porta
+app.get('/healthz', (req, res) => {
+  res.sendStatus(200);
+});
+
+// Inicia o servidor Express
+app.listen(PORT, () => {
+  console.log(`🔵 Servidor HTTP rodando na porta ${PORT}`);
+});
