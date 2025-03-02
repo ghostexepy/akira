@@ -4,8 +4,6 @@ const axios = require('axios');
 // URL da API da Akira (Servidor ou Local)
 const AKIRA_API_URL = process.env.AKIRA_API_URL || 'https://amazing-ant-softedge-998ba377.koyeb.app/bot';
 
-// Caminho do Chrome (para Render/Koyeb)
-const CHROME_PATH = process.env.CHROME_EXECUTABLE_PATH || "/usr/bin/google-chrome";
 
 venom
   .create({
