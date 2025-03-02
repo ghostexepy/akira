@@ -1,0 +1,13 @@
+{
+  "name": "akira-bot",
+  "version": "1.0.0",
+  "description": "Bot Akira para WhatsApp",
+  "main": "venom_bot.js",
+  "scripts": {
+    "start": "node venom_bot.js"
+  },
+  "dependencies": {
+    "venom-bot": "^4.0.0",
+    "axios": "^1.3.0"
+  }
+}
