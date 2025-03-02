@@ -1,6 +1,5 @@
 flask
 requests
-sqlite3
 transformers
 torch
 scikit-learn
