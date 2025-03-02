@@ -4,7 +4,6 @@ const axios = require('axios');
 // URL da API da Akira (Servidor ou Local)
 const AKIRA_API_URL = process.env.AKIRA_API_URL || 'https://amazing-ant-softedge-998ba377.koyeb.app/bot';
 
-
 venom
   .create({
     session: "bot",
@@ -36,8 +35,7 @@ venom
       "--disable-popup-blocking",
       "--disable-hang-monitor",
       "--disable-prompt-on-repost"
-    ],
-    browserPath: CHROME_PATH
+    ]
   })
   .then(client => start(client))
   .catch(error => {
